@@ -4,7 +4,8 @@ import argparse
 import json
 import subprocess
 import sys
-from datetime import datetime
+import os
+from datetime import datetime, UTC
 
 
 def run_tool(name, command):
@@ -15,6 +16,7 @@ def run_tool(name, command):
     result = {
         "name": name,
         "status": "PASS",
+        "findings": 0,
         "return_code": None,
         "output": "",
         "error": ""
@@ -24,15 +26,22 @@ def run_tool(name, command):
         completed = subprocess.run(
             command,
             capture_output=True,
-            text=True
+            text=True,
+            encoding="utf-8",
+            errors="ignore"
         )
 
         result["return_code"] = completed.returncode
         result["output"] = completed.stdout
 
+        result["findings"] = count_findings(
+            completed.stdout
+        )
+
         if completed.returncode != 0:
             result["status"] = "FAIL"
-            result["error"] = completed.stderr
+            if completed.stderr:
+                result["error"] = completed.stderr.strip()
 
     except FileNotFoundError:
         result["status"] = "ERROR"
@@ -44,6 +53,22 @@ def run_tool(name, command):
 
     return result
 
+def count_findings(output):
+    """
+    Basic finding counter.
+    Used to estimate findings from scanner output.
+    """
+        
+    if not output:
+        return 0
+        
+    lines = output.splitlines()
+        
+    return sum(
+        1
+        for line in lines
+        if "FAILED for resource" in line
+    )
 
 def build_summary(results):
 
@@ -87,6 +112,11 @@ def main():
 
     args = parser.parse_args()
 
+    requirements_file = os.path.join(
+        args.path,
+        "requirements.txt"
+    )
+
     results = []
 
     scans = [
@@ -97,16 +127,6 @@ def main():
                 "--config",
                 "auto",
                 args.path
-            ]
-        },
-        {
-            "name": "pip-audit",
-            "command": [
-                "python",
-                "-m",
-                "pip_audit",
-                "-r",
-                f"{args.path}/requirements.txt"
             ]
         },
         {
@@ -121,12 +141,26 @@ def main():
         {
             "name": "checkov",
             "command": [
-                "checkov",
+                r"C:\Users\JPMotaung\AppData\Local\Programs\Python\Python314\Scripts\checkov.cmd",
                 "-d",
                 args.path
             ]
         }
     ]
+
+    if os.path.exists(requirements_file):
+        scans.append(
+            {
+                "name": "pip-audit",
+                "command": [
+                    "python",
+                    "-m",
+                    "pip_audit",
+                    "-r",
+                    requirements_file
+                ]
+            }
+        )
 
     for scan in scans:
         print(f"Running {scan['name']}...")
@@ -140,7 +174,7 @@ def main():
     summary = build_summary(results)
 
     report = {
-        "scan_time": datetime.utcnow().isoformat(),
+        "scan_time": datetime.now(UTC).isoformat(),
         "scan_path": args.path,
         "summary": summary,
         "results": results

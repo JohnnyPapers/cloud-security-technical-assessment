@@ -1,45 +1,59 @@
 # Security Automation
 
-Unified security scanning utility that executes multiple security tools and returns a combined result.
+A Python-based security orchestration utility that executes multiple security scans and aggregates the results into a unified report.
 
-## Tools
+## Supported Scanners
 
-- Semgrep (SAST)
-- Pip-Audit (Dependency Scanning)
-- Gitleaks (Secrets Detection)
-- Checkov (IaC Scanning)
-
-## Usage
-
-```bash
-python security-scan.py --path ./app --format json
-```
+| Scanner | Purpose |
+|----------|----------|
+| Semgrep | SAST |
+| Pip-Audit | Dependency Vulnerability Scanning |
+| Gitleaks | Secret Detection |
+| Checkov | Infrastructure as Code Scanning |
 
 ## Example
 
 ```bash
-python security-scan.py --path ./tests/vulnerable-app --format json
+python security-scan.py \
+    --path ./tests/insecure-terraform \
+    --format json
+```
+
+## Output
+
+```json
+{
+  "summary": {
+    "overall_status": "FAIL"
+  }
+}
 ```
 
 ## Exit Codes
 
-| Code | Meaning |
-|--------|--------|
+| Code | Description |
+|---------|------------|
 | 0 | PASS |
-| 1 | FAIL or ERROR |
+| 1 | FAIL / Vulnerabilities Found |
 
-## Prerequisites
 
-Install Python dependencies:
+## Example Results
 
-```bash
-pip install -r requirements.txt
+### Terraform Scan
+
+```json
+{
+  "summary": {
+    "overall_status": "FAIL",
+    "pass": 2,
+    "fail": 1,
+    "error": 0
+  }
+}
 ```
 
-Install Gitleaks separately.
+Detected:
 
-Verify:
-
-```bash
-gitleaks version
-```
+- Open SSH access from 0.0.0.0/0
+- Missing security group descriptions
+- Detached security group
