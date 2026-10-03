@@ -61,7 +61,7 @@ Only database administrators should receive RDS administration permissions.
 
 ## Risk Rating
 
-High
+**High**
 
 ---
 
@@ -71,7 +71,7 @@ High
 
 The ReadOnly policy grants:
 
-```json
+```text
 rds:Describe*
 rds:ListTagsForResource
 ```
@@ -93,14 +93,14 @@ The implementation does not satisfy the requirement for read-only database acces
 Implement a database role that grants:
 
 ```sql
-SELECT
+GRANT SELECT
 ```
 
 permissions to required schemas and tables.
 
 ## Risk Rating
 
-High
+**High**
 
 ---
 
@@ -133,7 +133,7 @@ The policy does not enforce the intended application-level permissions.
 
 ## Potential Impact
 
-Users could gain excessive administrative privileges while still lacking proper database authorisation.
+Users could gain excessive administrative privileges while still lacking proper database authorization.
 
 ## Recommendation
 
@@ -152,8 +152,190 @@ to a dedicated CRUD role.
 
 ## Risk Rating
 
-High
+**High**
 
 ---
 
-# Finding 4 – IAM Database Authentication
+# Finding 4 – IAM Database Authentication Should Be Considered
+
+## Observation
+
+The architecture uses centralized identity management and user-specific role assignment.
+
+## Risk
+
+Traditional database usernames and passwords introduce:
+
+- Credential management overhead
+- Password rotation complexity
+- Increased risk of credential exposure
+- Potential use of shared database accounts
+
+## Potential Impact
+
+Long-lived credentials increase both operational effort and security risk.
+
+## Recommendation
+
+Consider implementing IAM Database Authentication for supported database engines.
+
+Benefits include:
+
+- Centralized authentication
+- Elimination of long-lived database passwords
+- Improved auditability
+- Better integration with enterprise identity systems
+
+Database permissions should continue to be enforced at the database layer.
+
+## Risk Rating
+
+**Medium**
+
+---
+
+# Finding 5 – Admin Role Provides Broad Administrative Access
+
+## Observation
+
+The Admin role grants:
+
+```json
+rds:*
+```
+
+along with additional permissions across:
+
+- CloudWatch
+- SNS
+- Performance Insights
+- Application Auto Scaling
+
+## Risk
+
+Compromise of the Admin role could allow significant modification of database infrastructure.
+
+## Potential Impact
+
+An attacker could:
+
+- Delete databases
+- Modify backups
+- Change scaling settings
+- Change configuration
+- Impact service availability
+
+## Recommendation
+
+Implement:
+
+- Just-in-time privileged access
+- Access approval workflows
+- Session logging
+- Regular access reviews
+- Separation of duties
+
+## Risk Rating
+
+**Medium**
+
+---
+
+# Finding 6 – Database Activity Auditing Is Not Explicitly Defined
+
+## Observation
+
+The proposed design does not explicitly mention database audit logging.
+
+## Risk
+
+Activities performed by privileged users may not be adequately monitored.
+
+## Potential Impact
+
+- Reduced forensic visibility
+- Compliance challenges
+- Limited insight into privileged database activity
+
+## Recommendation
+
+Enable:
+
+- Database audit logging
+- CloudWatch log exports
+- Query logging
+- Privileged activity monitoring
+
+## Risk Rating
+
+**Medium**
+
+---
+
+# Finding 7 – Federated Identity Model Is A Positive Security Control
+
+## Observation
+
+The architecture proposes user-specific identity assignment and centralized access management.
+
+## Positive Security Control
+
+This approach provides:
+
+- Improved accountability
+- Reduced credential sharing
+- Stronger access governance
+- Enhanced auditing capability
+
+## Recommendation
+
+Continue using federated identities and perform periodic access reviews.
+
+## Risk Rating
+
+**Low**
+
+---
+
+# Positive Security Controls Identified
+
+| Control | Assessment |
+|----------|------------|
+| Role-based access model | Good |
+| Federated identity integration | Good |
+| User-specific role assignment | Good |
+| Administrative role separation concept | Good |
+
+---
+
+# Key Security Observation
+
+The most significant issue identified is that the policies govern access to the Amazon RDS service rather than access to database objects.
+
+Examples:
+
+- ReadOnly does not provide SELECT permissions.
+- CRUB does not provide INSERT, UPDATE and DELETE permissions.
+- Admin provides infrastructure control rather than database-only administration.
+
+Database permissions should be enforced through database roles while IAM should be used for authentication and access governance.
+
+---
+
+# Overall Assessment
+
+The proposed design demonstrates strong identity governance principles and a sensible role-based access model.
+
+However, the current implementation does not correctly enforce the stated database authorization requirements.
+
+The highest-priority recommendation is to separate:
+
+1. AWS infrastructure administration
+2. Database authentication
+3. Database authorization
+
+and enforce SQL permissions at the database layer.
+
+## Overall Risk Rating
+
+**Medium-High**
