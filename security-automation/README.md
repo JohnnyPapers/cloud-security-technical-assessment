@@ -57,3 +57,22 @@ Detected:
 - Open SSH access from 0.0.0.0/0
 - Missing security group descriptions
 - Detached security group
+
+### Security Scanner Enhancements
+
+Implemented a significantly improved security automation workflow:
+
+- Added structured JSON parsing for Semgrep, Checkov, Gitleaks and pip-audit
+- Added vulnerability deduplication
+- Added severity classification
+- Added risk score calculation
+- Added consistent PASS / FAIL / ERROR reporting
+- Added machine-readable JSON reporting
+
+Example output:
+
+{
+  "overall_status": "FAIL",
+  "total_findings": 23,
+  "risk_score": 115
+}
